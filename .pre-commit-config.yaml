@@ -1,0 +1,53 @@
+# ═══════════════════════════════════════════════════════════════
+# AI Judge — pre-commit hooks
+# Запускаются автоматически при каждом git commit
+# Установка: pip install pre-commit && pre-commit install
+# ═══════════════════════════════════════════════════════════════
+
+repos:
+  # ─── Ruff: lint + autofix + format ───
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.9.6
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+        types_or: [python, pyi]
+      - id: ruff-format
+        types_or: [python, pyi]
+
+  # ─── Mypy: type checking ───
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.14.1
+    hooks:
+      - id: mypy
+        pass_filenames: false
+        args: [--config-file=pyproject.toml, app/]
+        additional_dependencies:
+          - pydantic>=2.0
+          - types-redis
+          - sqlalchemy[mypy]>=2.0
+
+  # ─── Standard checks ───
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+        exclude: "frontend/.*"
+      - id: check-toml
+      - id: check-added-large-files
+        args: [--maxkb=1000]
+      - id: check-merge-conflict
+      - id: detect-private-key        # Ловит случайно закоммиченные ключи/сертификаты
+      - id: no-commit-to-branch
+        args: [--branch, main, --branch, master]
+
+  # ─── Hadolint: Dockerfile linter ───
+  - repo: https://github.com/hadolint/hadolint
+    rev: v2.13.1-beta
+    hooks:
+      - id: hadolint-docker
+        entry: hadolint
+        args: [--ignore, DL3008, --ignore, DL3013]

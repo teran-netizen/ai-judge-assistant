@@ -1,0 +1,16 @@
+services:
+  test-runner:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    env_file: .env
+    environment:
+      PYTHONPATH: /app
+    volumes:
+      - ./tests:/tests:ro
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: ["pytest", "-q", "/tests"]

@@ -1,0 +1,59 @@
+# Secrets and local config
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.p12
+*.crt
+
+# Runtime data
+uploads/
+logs/
+pgdata/
+redis-data/
+*.db
+*.sqlite
+*.sql
+*.sql.gz
+*.dump
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+
+# Node
+node_modules/
+frontend/node_modules/
+frontend/dist/
+
+# Build/export/backups
+*.tar
+*.tar.gz
+*.zip
+*.bak
+server-backup/
+backup/
+*_backup*/
+seo-*/
+bad-quality-export*/
+ai_reports/
+
+# Local tooling
+.claude/
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db

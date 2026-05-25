@@ -1,0 +1,148 @@
+# ═══════════════════════════════════════════════════════════════
+# AI Judge — Python tooling config
+# Ruff (lint + format) · Mypy (types) · Pytest (tests + coverage)
+# ═══════════════════════════════════════════════════════════════
+
+[project]
+name = "ai-judge"
+version = "3.11.0"
+requires-python = ">=3.12"
+
+# ─── Ruff: lint + format (replaces flake8, isort, black, bandit) ───
+[tool.ruff]
+target-version = "py312"
+line-length = 120
+src = ["app"]
+
+extend-exclude = [
+    "alembic/versions/*",
+    "__pycache__",
+    ".venv",
+    "node_modules",
+    "frontend",
+]
+
+[tool.ruff.lint]
+select = [
+    "E", "W",       # pycodestyle — базовые ошибки стиля
+    "F",             # pyflakes — неиспользуемые импорты, переменные
+    "I",             # isort — порядок импортов
+    "N",             # pep8-naming — имена переменных/функций
+    "UP",            # pyupgrade — устаревший синтаксис Python
+    "S",             # bandit (security) — SQL-инъекции, hardcoded passwords, eval()
+    "B",             # flake8-bugbear — частые баги (mutable defaults, etc)
+    "A",             # flake8-builtins — shadowing builtins (list, dict, type...)
+    "C4",            # flake8-comprehensions — упрощение list/dict comp
+    "T20",           # flake8-print — print() в продакшн-коде
+    "SIM",           # flake8-simplify — упрощение if/else
+    "RUF",           # ruff-специфичные правила
+    "ASYNC",         # async-ошибки (забытый await, blocking calls в async)
+    "DTZ",           # datetime timezone — naive datetime (ловит datetime.now() без tz)
+    "LOG",           # logging — неправильный формат логов (f-string в logger)
+    "PIE",           # misc. лучшие практики
+    "PT",            # pytest-style
+    "RET",           # лишние return
+    "RSE",           # лишние raise
+    "TCH",           # TYPE_CHECKING imports
+]
+
+ignore = [
+    "E501",          # длину строки контролирует formatter
+    "S101",          # assert разрешён в тестах (pytest использует assert)
+    "S104",          # bind to 0.0.0.0 — нормально для Docker
+    "B008",          # Depends() в FastAPI — это паттерн, не баг
+    "RUF012",        # mutable class attributes — SQLAlchemy/Pydantic используют
+    "UP007",         # X | Y union syntax — не везде поддержан
+]
+
+[tool.ruff.lint.per-file-ignores]
+"scripts/*" = ["T20", "S"]             # скрипты могут использовать print и eval
+"tests/*" = ["S101", "S106", "T20"]    # тесты: assert, hardcoded passwords, print
+"alembic/*" = ["T20", "I"]             # миграции: print и порядок импортов
+"parsers/*" = ["T20", "S"]             # парсеры: print, потенциальный eval
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+force-single-line = false
+lines-after-imports = 2
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
+
+# ─── Mypy: статическая типизация ───
+[tool.mypy]
+python_version = "3.12"
+
+# Включаем постепенно — strict сразу сломает всё
+warn_return_any = true
+warn_unused_configs = true
+warn_unused_ignores = true
+check_untyped_defs = true             # проверяет тела функций без аннотаций
+disallow_untyped_defs = false          # включить позже когда проект типизирован
+disallow_incomplete_defs = true
+no_implicit_optional = true            # КЛЮЧЕВОЕ: ловит None на nullable колонках!
+warn_redundant_casts = true
+warn_unreachable = true                # мёртвый код после return/raise
+show_error_codes = true
+pretty = true
+
+# Pydantic plugin — проверяет модели (Field, validator, etc)
+plugins = ["pydantic.mypy"]
+
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+warn_required_dynamic_aliases = true
+
+# Игнорировать пакеты без type stubs
+[[tool.mypy.overrides]]
+module = [
+    "httpx.*",
+    "redis.*",
+    "aiofiles.*",
+    "pdf2image.*",
+    "PIL.*",
+    "bs4.*",
+    "jose.*",
+    "uvicorn.*",
+    "gunicorn.*",
+]
+ignore_missing_imports = true
+
+# ─── Pytest ───
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = [
+    "--tb=short",
+    "--strict-markers",
+    "--cov=app",
+    "--cov-report=term-missing:skip-covered",
+    "--cov-fail-under=30",             # начни с 30%, повышай постепенно
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: integration tests requiring DB/Redis",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+]
+
+# ─── Coverage ───
+[tool.coverage.run]
+source = ["app"]
+omit = [
+    "app/alembic/*",
+    "app/__main__.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "if __name__ == .__main__.",
+    "pass",
+    "\\.\\.\\.",
+]

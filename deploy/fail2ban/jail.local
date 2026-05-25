@@ -1,0 +1,67 @@
+# ═══════════════════════════════════════════════════════════════
+# AI Judge — Fail2ban Configuration
+# ═══════════════════════════════════════════════════════════════
+#
+# Fail2ban автоматически банит IP на уровне iptables
+# (ниже чем nginx — даже TCP-соединение не установится).
+#
+# Установка:
+#   apt install fail2ban
+#   cp deploy/fail2ban/jail.local /etc/fail2ban/jail.local
+#   cp deploy/fail2ban/filter.d/* /etc/fail2ban/filter.d/
+#   systemctl restart fail2ban
+#   fail2ban-client status ai-judge-ratelimit
+#
+# ═══════════════════════════════════════════════════════════════
+
+[DEFAULT]
+# Стандартные настройки
+bantime  = 1800    # 30 минут бана по умолчанию
+findtime = 600     # окно анализа — 10 минут
+maxretry = 5       # порог срабатывания
+backend  = auto
+banaction = iptables-multiport
+
+# ── Rate Limit Ban ──
+# Банит IP который многократно получает 429 от nginx
+[ai-judge-ratelimit]
+enabled  = true
+port     = http,https
+filter   = ai-judge-ratelimit
+logpath  = /var/log/nginx/access.log
+maxretry = 30       # 30 раз 429 за 5 минут = бан
+findtime = 300
+bantime  = 1800     # 30 минут
+
+# ── Scanner Ban ──
+# Банит IP который сканирует несуществующие пути (.env, wp-admin, etc.)
+[ai-judge-scanner]
+enabled  = true
+port     = http,https
+filter   = ai-judge-scanner
+logpath  = /var/log/nginx/access.log
+maxretry = 5        # 5 попыток доступа к опасным путям = бан
+findtime = 60
+bantime  = 86400    # 24 часа — сканеры не заслуживают милосердия
+
+# ── Auth Brute-force ──
+# Банит IP с множеством неудачных попыток авторизации
+[ai-judge-auth]
+enabled  = true
+port     = http,https
+filter   = ai-judge-auth
+logpath  = /var/log/nginx/access.log
+maxretry = 15       # 15 попыток OAuth за 5 минут = бан
+findtime = 300
+bantime  = 3600     # 1 час
+
+# ── Heavy API Abuse ──
+# Банит IP который спамит дорогие эндпоинты (generate, refine)
+[ai-judge-heavy]
+enabled  = true
+port     = http,https
+filter   = ai-judge-heavy
+logpath  = /var/log/nginx/access.log
+maxretry = 20
+findtime = 300
+bantime  = 3600     # 1 час
